@@ -1,30 +1,32 @@
-# React + TypeScript + Vite
+# Run.js
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An easy-to-use JavaScript environment with instantaneous feedback.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Welcome to **Run.js**, the JavaScript editor and console designed for developers who appreciate elegance and efficiency.
 
-## Expanding the ESLint configuration
+## Features
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- **IntelliSense:** Smart code completion and suggestions to enhance your productivity.
+- **Clear Console:** A clutter-free console for clean and readable output.
+- **Format Code:** Automatically format your code for consistency and readability.
+- **Auto Run:** See the results of your code instantly with our auto-run feature.
+- **Shortcuts:** Keyboard shortcuts for quick and efficient coding.
+- **Based on VSCode:** Enjoy the familiarity and power of a VSCode-based environment.
 
-- Configure the top-level `parserOptions` property like this:
+## Why Run.js?
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
+- **Efficiency:** No more waiting; see the results of your code instantly.
+- **Simplicity:** Focus on coding without distractions, thanks to our clean and minimalistic design.
+- **Elegance:** Experience a touch of sophistication in every aspect of your coding journey.
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+## Getting Started
+
+1. **Write:** Enter your JavaScript code in the editor.
+2. **Run:** See the output immediately in the console below.
+3. **Refine:** Make adjustments and watch the feedback update in real-time.
+
+## Support
+
+For any questions or feedback, feel free to reach out.
