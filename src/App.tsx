@@ -1,21 +1,25 @@
+import { Console } from "@/components/console";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { consoleTheme } from "@/constants/console-theme";
 import { editorTheme } from "@/constants/editor-theme";
+import { useWindowSize } from "@/hooks/use-window-size";
+import { safeEval } from "@/lib/safe-eval";
 import { cn } from "@/lib/utils";
 import Editor, { type Monaco } from "@monaco-editor/react";
-import { Console, Hook, Unhook } from "console-feed";
 import { type Message } from "console-feed/lib/definitions/Component";
 import {
   BanIcon,
+  BugIcon,
   CodeIcon,
+  MapIcon,
   PlayIcon,
   RefreshCwIcon,
   TerminalIcon,
   Trash2Icon,
+  WrapTextIcon,
 } from "lucide-react";
 import { editor } from "monaco-editor";
 import * as prettier from "prettier";
@@ -27,9 +31,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export function App() {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
-  const consoleRef = useRef<HTMLDivElement | null>(null);
+  const { width } = useWindowSize();
   const [logs, setLogs] = useState<Message[]>([]);
-  const [autoRun, setAutoRun] = useState(false);
+  const [options, setOptions] = useState({
+    autoRun: false,
+    minimap: false,
+    timer: false,
+    wordWrap: false,
+  });
 
   const deleteCode = useCallback(() => {
     editorRef.current?.setValue("");
@@ -39,34 +48,60 @@ export function App() {
     setLogs([]);
   }, []);
 
+  const toggleMiniMap = useCallback(() => {
+    setOptions((currOptions) => {
+      localStorage.setItem("minimap", String(!currOptions.minimap));
+      return { ...currOptions, minimap: !currOptions.minimap };
+    });
+  }, []);
+
+  const toggleWordWrap = useCallback(() => {
+    setOptions((currOptions) => {
+      localStorage.setItem("wordwrap", String(!currOptions.wordWrap));
+      return { ...currOptions, wordWrap: !currOptions.wordWrap };
+    });
+  }, []);
+
   const formatCode = useCallback(() => {
     editorRef.current?.getAction("editor.action.formatDocument")?.run();
   }, [editorRef]);
 
   const toggleAutoRun = useCallback(() => {
-    setAutoRun((currAutoRun) => {
-      localStorage.setItem("autorun", String(!currAutoRun));
-      return !currAutoRun;
+    setOptions((currOptions) => {
+      localStorage.setItem("autorun", String(!currOptions.autoRun));
+      return { ...currOptions, autoRun: !currOptions.autoRun };
     });
   }, []);
 
   const runCode = useCallback(
-    (code?: string) => {
+    async (code?: string) => {
       clearConsole();
-      eval(code || editorRef.current?.getValue() || "");
+      const duration = await safeEval(
+        code || editorRef.current?.getValue() || ""
+      );
+      if (options.timer) {
+        console.debug(`Execution time was ${duration}ms`);
+      }
     },
-    [clearConsole, editorRef]
+    [clearConsole, options]
   );
+
+  const toggleTimer = useCallback(() => {
+    setOptions((currOptions) => {
+      localStorage.setItem("timer", String(!currOptions.timer));
+      return { ...currOptions, timer: !currOptions.timer };
+    });
+  }, []);
 
   function handleEditorChange(
     value: string | undefined
     // event: editor.IModelContentChangedEvent
   ) {
-    // here is the current value
-    //   console.log("here is the current model value:", value);
     localStorage.setItem("code", value || "");
-    clearConsole();
-    runCode(value);
+    if (options.autoRun) {
+      clearConsole();
+      runCode(value);
+    }
   }
 
   function handleEditorDidMount(
@@ -153,39 +188,30 @@ export function App() {
     });
   }
 
-  function handleEditorWillMount() {
-    // monaco: Monaco
+  function handleEditorWillMount(/* monaco: Monaco */) {
     // console.log("beforeMount: the monaco instance:", monaco);
   }
 
   function handleEditorValidation(markers: editor.IMarker[]) {
-    // model markers
     markers.forEach((marker) => console.error(marker.message));
   }
 
   useEffect(() => {
-    // Scroll to bottom
-    consoleRef.current!.scroll(0, consoleRef.current!.scrollHeight);
-  }, [logs]);
-
-  useEffect(() => {
-    const hookedConsole = Hook(
-      window.console,
-      (log) => setLogs((currLogs) => [...currLogs, log as Message]),
-      false
-    );
-
-    return () => {
-      Unhook(hookedConsole);
-    };
-  }, []);
-
-  useEffect(() => {
-    setAutoRun(localStorage.getItem("autorun") === "true");
+    setOptions({
+      autoRun: localStorage.getItem("autorun") === "true",
+      minimap: localStorage.getItem("minimap") === "true",
+      timer: localStorage.getItem("timer") === "true",
+      wordWrap: localStorage.getItem("wordwrap") === "true",
+    });
   }, []);
 
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
+      // add Alt+M (toggle minimap)
+      if (e.altKey && e.key === "m") {
+        e.preventDefault();
+        toggleMiniMap();
+      }
       // add Alt+L (delete code)
       if (e.altKey && e.key === "l") {
         e.preventDefault();
@@ -207,6 +233,15 @@ export function App() {
         e.preventDefault();
         runCode();
       }
+      // add Alt+E
+      if (e.altKey && e.key === "e") {
+        e.preventDefault();
+        toggleTimer();
+      }
+      // remove Ctrl+S (save)
+      if (e.ctrlKey && e.key === "s") {
+        e.preventDefault();
+      }
     };
 
     window.addEventListener("keydown", listener);
@@ -214,17 +249,23 @@ export function App() {
     return () => {
       window.removeEventListener("keydown", listener);
     };
-  }, [deleteCode, clearConsole, runCode]);
+  }, [
+    deleteCode,
+    clearConsole,
+    runCode,
+    toggleAutoRun,
+    toggleTimer,
+    toggleMiniMap,
+  ]);
 
   return (
     <main className="h-screen w-screen bg-[#0e141a] text-white">
       <ResizablePanelGroup
+        autoSaveId="panel"
         className="overflow-auto"
-        direction="horizontal"
-        // direction="vertical"
-        // direction={() => (window.innerWidth > 640 ? "horizontal" : "vertical")}
+        direction={width > 640 ? "horizontal" : "vertical"}
       >
-        <ResizablePanel className="flex h-screen flex-col">
+        <ResizablePanel className="flex h-screen flex-col" defaultSize={70}>
           <div className="flex justify-between border-b border-[#171d23] p-2.5">
             <div className="flex items-center gap-2">
               <img alt="JavaScript" className="size-5" src="/js.svg" />
@@ -248,13 +289,34 @@ export function App() {
                 <CodeIcon size={16} />
               </button>
               <button
-                // className="rounded-lg p-1 transition-colors hover:bg-[#171d23]"
                 className={cn(
                   "rounded-lg p-1 transition-colors hover:bg-[#171d23]",
-                  autoRun && "bg-[#171d23]"
+                  options.minimap && "bg-[#232b33] hover:bg-[#232b33]"
+                )}
+                onClick={() => toggleMiniMap()}
+                title={`${options.minimap ? "Disable" : "Enable"} minimap (Alt+M)`}
+                type="button"
+              >
+                <MapIcon size={16} />
+              </button>
+              <button
+                className={cn(
+                  "rounded-lg p-1 transition-colors hover:bg-[#171d23]",
+                  options.wordWrap && "bg-[#232b33] hover:bg-[#232b33]"
+                )}
+                onClick={() => toggleWordWrap()}
+                title={`${options.wordWrap ? "Disable" : "Enable"} word wrap (Alt+W)`}
+                type="button"
+              >
+                <WrapTextIcon size={16} />
+              </button>
+              <button
+                className={cn(
+                  "rounded-lg p-1 transition-colors hover:bg-[#171d23]",
+                  options.autoRun && "bg-[#232b33] hover:bg-[#232b33]"
                 )}
                 onClick={() => toggleAutoRun()}
-                title="Toggle auto-run (Alt+Enter)"
+                title={`${options.autoRun ? "Disable" : "Enable"} auto-run (Alt+Enter)`}
                 type="button"
               >
                 <RefreshCwIcon size={16} />
@@ -277,12 +339,15 @@ export function App() {
             onChange={handleEditorChange}
             onMount={handleEditorDidMount}
             onValidate={handleEditorValidation}
-            options={{ wordWrap: "on" }}
+            options={{
+              minimap: { enabled: options.minimap },
+              wordWrap: options.wordWrap ? "on" : "off",
+            }}
             theme="vs-dark"
           />
         </ResizablePanel>
         <ResizableHandle className="bg-[#171d23]" />
-        <ResizablePanel className="flex h-screen flex-col">
+        <ResizablePanel className="flex h-screen flex-col" defaultSize={30}>
           <div className="flex justify-between border-b border-[#171d23] p-2.5">
             <div className="flex items-center gap-2">
               <TerminalIcon
@@ -293,6 +358,17 @@ export function App() {
             </div>
             <div className="flex gap-0.5">
               <button
+                className={cn(
+                  "rounded-lg p-1 transition-colors hover:bg-[#171d23]",
+                  options.timer && "bg-[#232b33] hover:bg-[#232b33]"
+                )}
+                onClick={() => toggleTimer()}
+                title={`${options.timer ? "Disable" : "Enable"} execution time (Alt+E)`}
+                type="button"
+              >
+                <BugIcon size={16} />
+              </button>
+              <button
                 className="rounded-lg p-1 transition-colors hover:bg-[#171d23]"
                 onClick={() => clearConsole()}
                 title="Clear console (Ctrl+L)"
@@ -302,9 +378,7 @@ export function App() {
               </button>
             </div>
           </div>
-          <div className="overflow-y-auto" ref={consoleRef}>
-            <Console logs={logs} styles={consoleTheme} variant="dark" />
-          </div>
+          <Console logs={logs} setLogs={setLogs} />
         </ResizablePanel>
       </ResizablePanelGroup>
     </main>
