@@ -121,6 +121,14 @@ export function App() {
         lineNumber: 1,
       }
     );
+    editor.setScrollPosition(
+      JSON.parse(localStorage.getItem("scroll") || "null") || {
+        scrollLeft: 0,
+        scrollTop: 0,
+      }
+    );
+    // editor.revealLine(cursorPosition.lineNumber - 50);
+
     monaco.editor.defineTheme("Sorcerer", editorTheme);
     monaco.editor.setTheme("Sorcerer");
 
@@ -170,6 +178,10 @@ export function App() {
       localStorage.setItem("cursor", JSON.stringify(e.position));
     });
 
+    editor.onDidScrollChange((e) => {
+      localStorage.setItem("scroll", JSON.stringify(e));
+    });
+
     monaco.languages.registerDocumentFormattingEditProvider("javascript", {
       provideDocumentFormattingEdits: async (model) => {
         const text = model.getValue();
@@ -186,6 +198,26 @@ export function App() {
         ];
       },
     });
+
+    // const editor2 = monaco.editor.create(document.getElementById("root")!, {
+    //   language: "javascript",
+    //   value:
+    //     "function myFunction(param1, param2) {\n  console.log(param1 + param2);\n}",
+    // });
+
+    // const lineNumber = 2;
+    // const model = editor2.getModel();
+
+    // const decorations = model?.getLineDecorations(lineNumber);
+
+    // // Analyze decorations to infer token types (might require additional logic)
+    // const potentialTokens = decorations!.map((decoration) => {
+    //   // Use decoration properties (e.g., className) to infer token type
+    //   console.log(decoration.options);
+    //   return { type: "potential-keyword" }; // Placeholder for inferred type
+    // });
+
+    // console.log(potentialTokens);
   }
 
   function handleEditorWillMount(/* monaco: Monaco */) {
@@ -265,7 +297,11 @@ export function App() {
         className="overflow-auto"
         direction={width > 640 ? "horizontal" : "vertical"}
       >
-        <ResizablePanel className="flex h-screen flex-col" defaultSize={70}>
+        <ResizablePanel
+          className="flex h-screen flex-col"
+          defaultSize={70}
+          minSize={20}
+        >
           <div className="flex justify-between border-b border-[#171d23] p-2.5">
             <div className="flex items-center gap-2">
               <img alt="JavaScript" className="size-5" src="/js.svg" />
@@ -273,61 +309,61 @@ export function App() {
             </div>
             <div className="flex gap-0.5">
               <button
-                className="rounded-lg p-1 transition-colors hover:bg-[#171d23]"
+                className="rounded-md p-1 transition-colors hover:bg-[#171d23]"
                 onClick={() => deleteCode()}
                 title="Delete code (Alt+L)"
                 type="button"
               >
-                <Trash2Icon size={16} />
+                <Trash2Icon size={16} strokeWidth={1.5} />
               </button>
               <button
-                className="rounded-lg p-1 transition-colors hover:bg-[#171d23]"
+                className="rounded-md p-1 transition-colors hover:bg-[#171d23]"
                 onClick={() => formatCode()}
                 title="Format code (Shift+Alt+F)"
                 type="button"
               >
-                <CodeIcon size={16} />
+                <CodeIcon size={16} strokeWidth={1.5} />
               </button>
               <button
                 className={cn(
-                  "rounded-lg p-1 transition-colors hover:bg-[#171d23]",
+                  "rounded-md p-1 transition-colors hover:bg-[#171d23]",
                   options.minimap && "bg-[#232b33] hover:bg-[#232b33]"
                 )}
                 onClick={() => toggleMiniMap()}
                 title={`${options.minimap ? "Disable" : "Enable"} minimap (Alt+M)`}
                 type="button"
               >
-                <MapIcon size={16} />
+                <MapIcon size={16} strokeWidth={1.5} />
               </button>
               <button
                 className={cn(
-                  "rounded-lg p-1 transition-colors hover:bg-[#171d23]",
+                  "rounded-md p-1 transition-colors hover:bg-[#171d23]",
                   options.wordWrap && "bg-[#232b33] hover:bg-[#232b33]"
                 )}
                 onClick={() => toggleWordWrap()}
                 title={`${options.wordWrap ? "Disable" : "Enable"} word wrap (Alt+W)`}
                 type="button"
               >
-                <WrapTextIcon size={16} />
+                <WrapTextIcon size={16} strokeWidth={1.5} />
               </button>
               <button
                 className={cn(
-                  "rounded-lg p-1 transition-colors hover:bg-[#171d23]",
+                  "rounded-md p-1 transition-colors hover:bg-[#171d23]",
                   options.autoRun && "bg-[#232b33] hover:bg-[#232b33]"
                 )}
                 onClick={() => toggleAutoRun()}
                 title={`${options.autoRun ? "Disable" : "Enable"} auto-run (Alt+Enter)`}
                 type="button"
               >
-                <RefreshCwIcon size={16} />
+                <RefreshCwIcon size={16} strokeWidth={1.5} />
               </button>
               <button
-                className="rounded-lg p-1 transition-colors hover:bg-[#171d23]"
+                className="rounded-md p-1 transition-colors hover:bg-[#171d23]"
                 onClick={() => runCode()}
                 title="Run code (Ctrl+Enter)"
                 type="button"
               >
-                <PlayIcon size={16} />
+                <PlayIcon size={16} strokeWidth={1.5} />
               </button>
             </div>
           </div>
@@ -347,7 +383,11 @@ export function App() {
           />
         </ResizablePanel>
         <ResizableHandle className="bg-[#171d23]" />
-        <ResizablePanel className="flex h-screen flex-col" defaultSize={30}>
+        <ResizablePanel
+          className="flex h-screen flex-col"
+          defaultSize={30}
+          minSize={20}
+        >
           <div className="flex justify-between border-b border-[#171d23] p-2.5">
             <div className="flex items-center gap-2">
               <TerminalIcon
@@ -359,22 +399,22 @@ export function App() {
             <div className="flex gap-0.5">
               <button
                 className={cn(
-                  "rounded-lg p-1 transition-colors hover:bg-[#171d23]",
+                  "rounded-md p-1 transition-colors hover:bg-[#171d23]",
                   options.timer && "bg-[#232b33] hover:bg-[#232b33]"
                 )}
                 onClick={() => toggleTimer()}
                 title={`${options.timer ? "Disable" : "Enable"} execution time (Alt+E)`}
                 type="button"
               >
-                <BugIcon size={16} />
+                <BugIcon size={16} strokeWidth={1.5} />
               </button>
               <button
-                className="rounded-lg p-1 transition-colors hover:bg-[#171d23]"
+                className="rounded-md p-1 transition-colors hover:bg-[#171d23]"
                 onClick={() => clearConsole()}
                 title="Clear console (Ctrl+L)"
                 type="button"
               >
-                <BanIcon size={16} />
+                <BanIcon size={16} strokeWidth={1.5} />
               </button>
             </div>
           </div>
