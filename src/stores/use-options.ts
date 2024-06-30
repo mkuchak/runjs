@@ -1,3 +1,4 @@
+import { getStorage } from "@/lib/get-storage";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -20,7 +21,7 @@ type Action = {
   setCursor: (cursor: State["cursor"]) => void;
   setScroll: (scroll: State["scroll"]) => void;
   toggleAutoRun: () => void;
-  toggleMiniMap: () => void;
+  toggleMinimap: () => void;
   toggleTimer: () => void;
   toggleWordWrap: () => void;
 };
@@ -45,7 +46,7 @@ export const useOptions = create(
       timer: false,
       toggleAutoRun: () =>
         set((state) => ({ ...state, autoRun: !state.autoRun })),
-      toggleMiniMap: () =>
+      toggleMinimap: () =>
         set((state) => ({ ...state, minimap: !state.minimap })),
       toggleTimer: () => set((state) => ({ ...state, timer: !state.timer })),
       toggleWordWrap: () =>
@@ -53,7 +54,8 @@ export const useOptions = create(
       wordWrap: false,
     }),
     {
-      name: "options",
+      name: "run-js:options",
+      storage: getStorage(),
       version: 1,
     }
   )

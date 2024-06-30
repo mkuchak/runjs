@@ -43,7 +43,7 @@ export function App() {
 
   useKeyboardShortcuts([
     {
-      action: () => options.toggleMiniMap(),
+      action: () => options.toggleMinimap(),
       key: "m", // Add Alt+M to toggle minimap
       modifiers: { alt: true },
     },
@@ -121,7 +121,7 @@ export function App() {
                   "rounded-md p-1 transition-colors hover:bg-[#171d23]",
                   options.minimap && "bg-[#232b33] hover:bg-[#232b33]"
                 )}
-                onClick={() => options.toggleMiniMap()}
+                onClick={() => options.toggleMinimap()}
                 title={`${options.minimap ? "Disable" : "Enable"} Minimap (Alt+M)`}
                 type="button"
               >

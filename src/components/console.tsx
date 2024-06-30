@@ -11,8 +11,9 @@ export type ConsoleProps = {
 export function Console({ consoleRef }: ConsoleProps) {
   const console = useConsole();
 
+  // Scroll to bottom when new logs are added
   useEffect(() => {
-    consoleRef.current!.scroll(0, consoleRef.current!.scrollHeight); // Scroll to bottom
+    consoleRef.current!.scroll(0, consoleRef.current!.scrollHeight);
   }, [console.logs, consoleRef]);
 
   useEffect(() => {

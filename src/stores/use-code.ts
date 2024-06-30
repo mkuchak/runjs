@@ -1,3 +1,4 @@
+import { getStorage } from "@/lib/get-storage";
 import { safeEval } from "@/lib/safe-eval";
 import { useConsole } from "@/stores/use-console";
 import { useOptions } from "@/stores/use-options";
@@ -29,7 +30,8 @@ export const useCode = create(
       setCode: (code) => set((state) => ({ ...state, code })),
     }),
     {
-      name: "code",
+      name: "run-js:code",
+      storage: getStorage(),
       version: 1,
     }
   )

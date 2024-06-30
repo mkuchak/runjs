@@ -9,6 +9,6 @@ export async function safeEval(code: string): Promise<number> {
   } finally {
     endTime = performance.now();
   }
-  
+
   return parseFloat((endTime - startTime).toFixed(2));
 }

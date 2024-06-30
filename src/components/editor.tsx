@@ -60,7 +60,7 @@ export function Editor({ editorRef }: EditorProps) {
     // Customize keybindings
     monaco.editor.addKeybindingRules([
       {
-        command: "", // Remove Ctrl+L to format code
+        command: "", // Remove Ctrl+L to clear logs
         keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL,
       },
       {
@@ -90,7 +90,6 @@ export function Editor({ editorRef }: EditorProps) {
         lineNumber: e.position.lineNumber,
       })
     );
-
     editor.onDidScrollChange((e) =>
       options.setScroll({
         scrollLeft: e.scrollLeft,
