@@ -1,15 +1,16 @@
 import { Console } from "@/components/console";
+import { Editor } from "@/components/editor";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { editorTheme } from "@/constants/editor-theme";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useWindowSize } from "@/hooks/use-window-size";
-import { safeEval } from "@/lib/safe-eval";
 import { cn } from "@/lib/utils";
-import Editor, { type Monaco } from "@monaco-editor/react";
-import { type Message } from "console-feed/lib/definitions/Component";
+import { useCode } from "@/stores/use-code";
+import { useConsole } from "@/stores/use-console";
+import { useOptions } from "@/stores/use-options";
 import {
   BanIcon,
   BugIcon,
@@ -21,273 +22,64 @@ import {
   Trash2Icon,
   WrapTextIcon,
 } from "lucide-react";
-import { editor } from "monaco-editor";
-import * as prettier from "prettier";
-import * as babelParser from "prettier/parser-babel";
-import * as babelPlugin from "prettier/plugins/babel";
-import * as estreePlugin from "prettier/plugins/estree";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type editor } from "monaco-editor";
+import { useRef } from "react";
 
 export function App() {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const monacoRef = useRef<Monaco | null>(null);
+  const consoleRef = useRef<HTMLDivElement | null>(null);
   const { width } = useWindowSize();
-  const [logs, setLogs] = useState<Message[]>([]);
-  const [options, setOptions] = useState({
-    autoRun: false,
-    minimap: false,
-    timer: false,
-    wordWrap: false,
-  });
+  const { runCode } = useCode();
+  const { clearLogs } = useConsole();
+  const options = useOptions();
 
-  const deleteCode = useCallback(() => {
+  function deleteCode() {
     editorRef.current?.setValue("");
-  }, [editorRef]);
+  }
 
-  const clearConsole = useCallback(() => {
-    setLogs([]);
-  }, []);
-
-  const toggleMiniMap = useCallback(() => {
-    setOptions((currOptions) => {
-      localStorage.setItem("minimap", String(!currOptions.minimap));
-      return { ...currOptions, minimap: !currOptions.minimap };
-    });
-  }, []);
-
-  const toggleWordWrap = useCallback(() => {
-    setOptions((currOptions) => {
-      localStorage.setItem("wordwrap", String(!currOptions.wordWrap));
-      return { ...currOptions, wordWrap: !currOptions.wordWrap };
-    });
-  }, []);
-
-  const formatCode = useCallback(() => {
+  function formatCode() {
     editorRef.current?.getAction("editor.action.formatDocument")?.run();
-  }, [editorRef]);
+  }
 
-  const toggleAutoRun = useCallback(() => {
-    setOptions((currOptions) => {
-      localStorage.setItem("autorun", String(!currOptions.autoRun));
-      return { ...currOptions, autoRun: !currOptions.autoRun };
-    });
-  }, []);
-
-  const runCode = useCallback(
-    async (code?: string) => {
-      clearConsole();
-      const duration = await safeEval(
-        code || editorRef.current?.getValue() || ""
-      );
-      if (options.timer) {
-        console.debug(`Execution time was ${duration}ms`);
-      }
+  useKeyboardShortcuts([
+    {
+      action: () => options.toggleMiniMap(),
+      key: "m", // Add Alt+M to toggle minimap
+      modifiers: { alt: true },
     },
-    [clearConsole, options]
-  );
-
-  const toggleTimer = useCallback(() => {
-    setOptions((currOptions) => {
-      localStorage.setItem("timer", String(!currOptions.timer));
-      return { ...currOptions, timer: !currOptions.timer };
-    });
-  }, []);
-
-  function handleEditorChange(
-    value: string | undefined
-    // event: editor.IModelContentChangedEvent
-  ) {
-    localStorage.setItem("code", value || "");
-    if (options.autoRun) {
-      clearConsole();
-      runCode(value);
-    }
-  }
-
-  function handleEditorDidMount(
-    editor: editor.IStandaloneCodeEditor,
-    monaco: Monaco
-  ) {
-    editorRef.current = editor;
-    monacoRef.current = monaco;
-    // console.log("onMount: the editor instance:", editor);
-    // console.log("onMount: the monaco instance:", monaco);
-
-    editor.setValue(localStorage.getItem("code") || "");
-    editor.focus();
-    editor.setPosition(
-      JSON.parse(localStorage.getItem("cursor") || "null") || {
-        column: 1,
-        lineNumber: 1,
-      }
-    );
-    editor.setScrollPosition(
-      JSON.parse(localStorage.getItem("scroll") || "null") || {
-        scrollLeft: 0,
-        scrollTop: 0,
-      }
-    );
-    // editor.revealLine(cursorPosition.lineNumber - 50);
-
-    monaco.editor.defineTheme("Sorcerer", editorTheme);
-    monaco.editor.setTheme("Sorcerer");
-
-    // change default font size
-    editor.updateOptions({
-      fontFamily: "Rec Mono Casual, Fira Code, Inter, monospace",
-      fontLigatures: true,
-    });
-
-    // interface IKeybindingRule {
-    //   keybinding: number;
-    //   command?: string | null;
-    //   commandArgs?: any;
-    //   when?: string | null;
-    // }
-    monaco.editor.addKeybindingRules([
-      {
-        command: "",
-        // remove Ctrl+L (format code)
-        keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL,
-      },
-      {
-        command: "",
-        // remove Ctrl+Enter (run code)
-        keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
-      },
-      {
-        command: "",
-        // remove Alt+Enter (toggle auto-run)
-        keybinding: monaco.KeyMod.Alt | monaco.KeyCode.KeyL,
-      },
-      {
-        command: "",
-        // remove Ctrl+Shift+R
-        keybinding:
-          monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyR,
-      },
-      {
-        command: "editor.action.deleteLines",
-        // add Ctrl+Shift+X (delete current line)
-        keybinding:
-          monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyX,
-      },
-    ]);
-
-    editor.onDidChangeCursorPosition((e) => {
-      localStorage.setItem("cursor", JSON.stringify(e.position));
-    });
-
-    editor.onDidScrollChange((e) => {
-      localStorage.setItem("scroll", JSON.stringify(e));
-    });
-
-    monaco.languages.registerDocumentFormattingEditProvider("javascript", {
-      provideDocumentFormattingEdits: async (model) => {
-        const text = model.getValue();
-        const formatted = await prettier.format(text, {
-          parser: "babel",
-          plugins: [babelPlugin, estreePlugin, babelParser],
-        });
-
-        return [
-          {
-            range: model.getFullModelRange(),
-            text: formatted,
-          },
-        ];
-      },
-    });
-
-    // const editor2 = monaco.editor.create(document.getElementById("root")!, {
-    //   language: "javascript",
-    //   value:
-    //     "function myFunction(param1, param2) {\n  console.log(param1 + param2);\n}",
-    // });
-
-    // const lineNumber = 2;
-    // const model = editor2.getModel();
-
-    // const decorations = model?.getLineDecorations(lineNumber);
-
-    // // Analyze decorations to infer token types (might require additional logic)
-    // const potentialTokens = decorations!.map((decoration) => {
-    //   // Use decoration properties (e.g., className) to infer token type
-    //   console.log(decoration.options);
-    //   return { type: "potential-keyword" }; // Placeholder for inferred type
-    // });
-
-    // console.log(potentialTokens);
-  }
-
-  function handleEditorWillMount(/* monaco: Monaco */) {
-    // console.log("beforeMount: the monaco instance:", monaco);
-  }
-
-  function handleEditorValidation(markers: editor.IMarker[]) {
-    markers.forEach((marker) => console.error(marker.message));
-  }
-
-  useEffect(() => {
-    setOptions({
-      autoRun: localStorage.getItem("autorun") === "true",
-      minimap: localStorage.getItem("minimap") === "true",
-      timer: localStorage.getItem("timer") === "true",
-      wordWrap: localStorage.getItem("wordwrap") === "true",
-    });
-  }, []);
-
-  useEffect(() => {
-    const listener = (e: KeyboardEvent) => {
-      // add Alt+M (toggle minimap)
-      if (e.altKey && e.key === "m") {
-        e.preventDefault();
-        toggleMiniMap();
-      }
-      // add Alt+L (delete code)
-      if (e.altKey && e.key === "l") {
-        e.preventDefault();
+    {
+      action: () => {
         deleteCode();
-        clearConsole();
-      }
-      // add Alt+Enter (toggle auto-run)
-      if (e.altKey && e.key === "Enter") {
-        e.preventDefault();
-        toggleAutoRun();
-      }
-      // add Ctrl+L (clear console)
-      if (e.ctrlKey && e.key === "l") {
-        e.preventDefault();
-        clearConsole();
-      }
-      // add Ctrl+Enter (run code)
-      if (e.ctrlKey && e.key === "Enter") {
-        e.preventDefault();
-        runCode();
-      }
-      // add Alt+E
-      if (e.altKey && e.key === "e") {
-        e.preventDefault();
-        toggleTimer();
-      }
-      // remove Ctrl+S (save)
-      if (e.ctrlKey && e.key === "s") {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener("keydown", listener);
-
-    return () => {
-      window.removeEventListener("keydown", listener);
-    };
-  }, [
-    deleteCode,
-    clearConsole,
-    runCode,
-    toggleAutoRun,
-    toggleTimer,
-    toggleMiniMap,
+        clearLogs();
+      },
+      key: "d", // Add Alt+D to delete code
+      modifiers: { alt: true },
+    },
+    {
+      action: () => options.toggleAutoRun(),
+      key: "Enter", // Add Alt+Enter to toggle auto-run
+      modifiers: { alt: true },
+    },
+    {
+      action: () => clearLogs(),
+      key: "l", // Add Ctrl+L to clear logs
+      modifiers: { ctrl: true },
+    },
+    {
+      action: () => runCode(),
+      key: "Enter", // Add Ctrl+Enter to run code
+      modifiers: { ctrl: true },
+    },
+    {
+      action: () => options.toggleTimer(),
+      key: "t", // Add Alt+T to toggle execution time
+      modifiers: { alt: true },
+    },
+    {
+      action: () => options.toggleWordWrap(),
+      key: "l", // Add Alt+W to toggle word wrap
+      modifiers: { alt: true },
+    },
   ]);
 
   return (
@@ -311,7 +103,7 @@ export function App() {
               <button
                 className="rounded-md p-1 transition-colors hover:bg-[#171d23]"
                 onClick={() => deleteCode()}
-                title="Delete code (Alt+L)"
+                title="Delete Code (Alt+D)"
                 type="button"
               >
                 <Trash2Icon size={16} strokeWidth={1.5} />
@@ -319,7 +111,7 @@ export function App() {
               <button
                 className="rounded-md p-1 transition-colors hover:bg-[#171d23]"
                 onClick={() => formatCode()}
-                title="Format code (Shift+Alt+F)"
+                title="Format Code (Shift+Alt+F)"
                 type="button"
               >
                 <CodeIcon size={16} strokeWidth={1.5} />
@@ -329,8 +121,8 @@ export function App() {
                   "rounded-md p-1 transition-colors hover:bg-[#171d23]",
                   options.minimap && "bg-[#232b33] hover:bg-[#232b33]"
                 )}
-                onClick={() => toggleMiniMap()}
-                title={`${options.minimap ? "Disable" : "Enable"} minimap (Alt+M)`}
+                onClick={() => options.toggleMiniMap()}
+                title={`${options.minimap ? "Disable" : "Enable"} Minimap (Alt+M)`}
                 type="button"
               >
                 <MapIcon size={16} strokeWidth={1.5} />
@@ -340,8 +132,8 @@ export function App() {
                   "rounded-md p-1 transition-colors hover:bg-[#171d23]",
                   options.wordWrap && "bg-[#232b33] hover:bg-[#232b33]"
                 )}
-                onClick={() => toggleWordWrap()}
-                title={`${options.wordWrap ? "Disable" : "Enable"} word wrap (Alt+W)`}
+                onClick={() => options.toggleWordWrap()}
+                title={`${options.wordWrap ? "Disable" : "Enable"} Word Wrap (Alt+L)`}
                 type="button"
               >
                 <WrapTextIcon size={16} strokeWidth={1.5} />
@@ -351,8 +143,8 @@ export function App() {
                   "rounded-md p-1 transition-colors hover:bg-[#171d23]",
                   options.autoRun && "bg-[#232b33] hover:bg-[#232b33]"
                 )}
-                onClick={() => toggleAutoRun()}
-                title={`${options.autoRun ? "Disable" : "Enable"} auto-run (Alt+Enter)`}
+                onClick={() => options.toggleAutoRun()}
+                title={`${options.autoRun ? "Disable" : "Enable"} Auto-Run (Alt+Enter)`}
                 type="button"
               >
                 <RefreshCwIcon size={16} strokeWidth={1.5} />
@@ -367,20 +159,7 @@ export function App() {
               </button>
             </div>
           </div>
-          <Editor
-            beforeMount={handleEditorWillMount}
-            height="100vh"
-            language="javascript"
-            loading={<img alt="Loading..." className="size-20" src="/js.svg" />}
-            onChange={handleEditorChange}
-            onMount={handleEditorDidMount}
-            onValidate={handleEditorValidation}
-            options={{
-              minimap: { enabled: options.minimap },
-              wordWrap: options.wordWrap ? "on" : "off",
-            }}
-            theme="vs-dark"
-          />
+          <Editor editorRef={editorRef} />
         </ResizablePanel>
         <ResizableHandle className="bg-[#171d23]" />
         <ResizablePanel
@@ -402,23 +181,23 @@ export function App() {
                   "rounded-md p-1 transition-colors hover:bg-[#171d23]",
                   options.timer && "bg-[#232b33] hover:bg-[#232b33]"
                 )}
-                onClick={() => toggleTimer()}
-                title={`${options.timer ? "Disable" : "Enable"} execution time (Alt+E)`}
+                onClick={() => options.toggleTimer()}
+                title={`${options.timer ? "Disable" : "Enable"} Execution Time (Alt+T)`}
                 type="button"
               >
                 <BugIcon size={16} strokeWidth={1.5} />
               </button>
               <button
                 className="rounded-md p-1 transition-colors hover:bg-[#171d23]"
-                onClick={() => clearConsole()}
-                title="Clear console (Ctrl+L)"
+                onClick={() => clearLogs()}
+                title="Clear Console (Ctrl+L)"
                 type="button"
               >
                 <BanIcon size={16} strokeWidth={1.5} />
               </button>
             </div>
           </div>
-          <Console logs={logs} setLogs={setLogs} />
+          <Console consoleRef={consoleRef} />
         </ResizablePanel>
       </ResizablePanelGroup>
     </main>

@@ -1,36 +1,35 @@
 import { consoleTheme } from "@/constants/console-theme";
+import { useConsole } from "@/stores/use-console";
 import { Console as ConsoleFeed, Hook, Unhook } from "console-feed";
 import { type Message } from "console-feed/lib/definitions/Component";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 export type ConsoleProps = {
-  logs: Message[];
-  setLogs: React.Dispatch<React.SetStateAction<Message[]>>;
+  consoleRef: React.MutableRefObject<HTMLDivElement | null>;
 };
 
-export function Console({ logs, setLogs }: ConsoleProps) {
-  const consoleRef = useRef<HTMLDivElement | null>(null);
+export function Console({ consoleRef }: ConsoleProps) {
+  const console = useConsole();
 
   useEffect(() => {
-    // Scroll to bottom
-    consoleRef.current!.scroll(0, consoleRef.current!.scrollHeight);
-  }, [logs]);
+    consoleRef.current!.scroll(0, consoleRef.current!.scrollHeight); // Scroll to bottom
+  }, [console.logs, consoleRef]);
 
   useEffect(() => {
     const hookedConsole = Hook(
       window.console,
-      (log) => setLogs((currLogs) => [...currLogs, log as Message]),
+      (log) => console.addLog(log as Message),
       false
     );
 
     return () => {
       Unhook(hookedConsole);
     };
-  }, [setLogs]);
+  }, [console]);
 
   return (
     <div className="overflow-y-auto" ref={consoleRef}>
-      <ConsoleFeed logs={logs} styles={consoleTheme} variant="dark" />
+      <ConsoleFeed logs={console.logs} styles={consoleTheme} variant="dark" />
     </div>
   );
 }
