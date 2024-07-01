@@ -9,28 +9,28 @@ export type ConsoleProps = {
 };
 
 export function Console({ consoleRef }: ConsoleProps) {
-  const console = useConsole();
+  const { addLog, logs } = useConsole();
 
   // Scroll to bottom when new logs are added
   useEffect(() => {
     consoleRef.current!.scroll(0, consoleRef.current!.scrollHeight);
-  }, [console.logs, consoleRef]);
+  }, [logs, consoleRef]);
 
   useEffect(() => {
     const hookedConsole = Hook(
       window.console,
-      (log) => console.addLog(log as Message),
+      (log) => addLog(log as Message),
       false
     );
 
     return () => {
       Unhook(hookedConsole);
     };
-  }, [console]);
+  }, [addLog]);
 
   return (
     <div className="overflow-y-auto" ref={consoleRef}>
-      <ConsoleFeed logs={console.logs} styles={consoleTheme} variant="dark" />
+      <ConsoleFeed logs={logs} styles={consoleTheme} variant="dark" />
     </div>
   );
 }

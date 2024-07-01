@@ -77,9 +77,66 @@ export function Editor({ editorRef }: EditorProps) {
           monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyR,
       },
       {
+        command: "", // Remove Alt+Shift+Down
+        keybinding:
+          monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.DownArrow,
+      },
+      {
+        command: "", // Remove Alt+Shift+Up
+        keybinding:
+          monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.UpArrow,
+      },
+      {
+        command: "", // Remove Alt+Down
+        keybinding: monaco.KeyMod.Alt | monaco.KeyCode.DownArrow,
+      },
+      {
+        command: "", // Remove Alt+Up
+        keybinding: monaco.KeyMod.Alt | monaco.KeyCode.UpArrow,
+      },
+      {
+        command: "editor.action.moveLinesUpAction", // Add Ctrl+Shift+Up to move line up
+        keybinding:
+          monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.UpArrow,
+      },
+      {
+        command: "editor.action.moveLinesDownAction",
+        keybinding:
+          monaco.KeyMod.CtrlCmd |
+          monaco.KeyMod.Shift |
+          monaco.KeyCode.DownArrow,
+      },
+      {
+        command: "editor.action.copyLinesDownAction", // Add Ctrl+D to duplicate current line
+        keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD,
+      },
+      {
         command: "editor.action.deleteLines", // Add Ctrl+Shift+X to delete current line
         keybinding:
           monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyX,
+      },
+      {
+        command: "cursorWordPartRight", // Add Alt+Right to move cursor between CamelCase words
+        keybinding: monaco.KeyMod.Alt | monaco.KeyCode.RightArrow,
+      },
+      {
+        command: "cursorWordPartLeft", // Add Alt+Left to move cursor between CamelCase words
+        keybinding: monaco.KeyMod.Alt | monaco.KeyCode.LeftArrow,
+      },
+      {
+        command: "cursorWordPartRightSelect", // Add Alt+Shift+Right to select between CamelCase words
+        keybinding:
+          monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.RightArrow,
+      },
+      {
+        command: "cursorWordPartLeftSelect", // Add Alt+Shift+Left to select between CamelCase words
+        keybinding:
+          monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.LeftArrow,
+      },
+      {
+        command: "editor.action.addSelectionToNextFindMatch", // Add Ctrl+Shift+D to select next occurrence
+        keybinding:
+          monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyD,
       },
     ]);
 
@@ -127,6 +184,7 @@ export function Editor({ editorRef }: EditorProps) {
       options={{
         minimap: { enabled: options.minimap },
         renderWhitespace: "all",
+        tabSize: 2,
         wordWrap: options.wordWrap ? "on" : "off",
       }}
       theme="vs-dark"

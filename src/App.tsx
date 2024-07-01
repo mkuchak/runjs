@@ -80,6 +80,16 @@ export function App() {
       key: "l", // Add Alt+W to toggle word wrap
       modifiers: { alt: true },
     },
+    {
+      action: () => runCode(), // Remove Ctrl+S that opens the browser save dialog, instead execute the code
+      key: "s",
+      modifiers: { ctrl: true },
+    },
+    {
+      action: () => {}, // Remove Ctrl+Shift+D that stops the browser from opening the bookmark menu
+      key: "d",
+      modifiers: { ctrl: true, shift: true },
+    },
   ]);
 
   return (
